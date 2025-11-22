@@ -53,10 +53,3 @@ The result is decided based on standard rules.
 
 A basic **2-player Tic Tac Toe** game on a 3×3 grid.  
 Two players take turns, and the program checks for wins or draws.
-
----
-
-<<<<<<< HEAD
-=======
-
->>>>>>> d690a9f1b0cd98ddf179801ae98b5774d1a6e9c0
