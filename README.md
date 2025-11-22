@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 # project.1
+=======
+>>>>>>> d690a9f1b0cd98ddf179801ae98b5774d1a6e9c0
 <p align="left">
   <img src="https://cacm.acm.org/wp-content/uploads/2025/01/012225.BLOG_.21st-Century-C-G.jpg?resize=1536,864" width="50">
 </p>
@@ -57,3 +60,7 @@ Two players take turns, and the program checks for wins or draws.
 
 ---
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> d690a9f1b0cd98ddf179801ae98b5774d1a6e9c0
