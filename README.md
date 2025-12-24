@@ -53,3 +53,8 @@ The result is decided based on standard rules.
 
 A basic **2-player Tic Tac Toe** game on a 3×3 grid.  
 Two players take turns, and the program checks for wins or draws.
+## **5️⃣ Snake Game**
+<p align="left">
+  <img src="https://codewithcurious.com/wp-content/uploads/2024/09/thumb-4.png.webp" width="200">
+</p>
+A classic Snake Game implemented in C++ for the console. Use W/A/S/D to move the snake and Spacebar to temporarily boost speed. Eat food (o) to grow and score points. The game ends if the snake hits the wall or itself. Features a score display, boost bar, and a bold, centered Game Over message.
