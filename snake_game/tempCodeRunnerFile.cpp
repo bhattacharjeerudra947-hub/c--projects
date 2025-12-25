@@ -4,6 +4,8 @@
 #include <ctime>
 
 
+
+
 void showConsoleCursor(bool showFlag) {
     HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_CURSOR_INFO cursorInfo;
@@ -14,6 +16,8 @@ void showConsoleCursor(bool showFlag) {
 
 
 using namespace std;
+HANDLE hBuffer[2];
+int currentBuffer =0;
 const int UI_HEIGHT = 3;
 
 
@@ -31,6 +35,7 @@ void initscreen(){
     con_h=csbi.srWindow.Bottom-csbi.srWindow.Top+1;
     con_w=csbi.srWindow.Right-csbi.srWindow.Left+1;
 }
+
 struct point{
     int xcoord;
     int ycoord;
@@ -86,7 +91,8 @@ class Snake{
             case d_left:  body[0].xcoord--; break;
         }
          // 👉 WALL COLLISION (HERE)
-        if(body[0].ycoord < UI_HEIGHT || body[0].ycoord >= con_h) return false;
+        if(body[0].xcoord < 0 || body[0].xcoord >= con_w ||body[0].ycoord < UI_HEIGHT || body[0].ycoord >= con_h)return false;
+
 
         // self collision
         for(int i = 1; i < length; i++){
@@ -113,7 +119,7 @@ class Board{
     //point spfood;
     point food;
     const char FOOD= 'o';
-    int temp_score;
+    int score;
     bool speedboost;
     bool cooldown;
     clock_t boostStartTime;
@@ -131,7 +137,7 @@ class Board{
 
     // middle content
         gotoxy(1,1);
-        cout << "score: " << temp_score;
+        cout << "Score: " << score;
 
         drawBoostBar();
 
@@ -178,15 +184,16 @@ class Board{
         COORD coord;
         coord.X=x;
         coord.Y=y;
-        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),coord);
+        SetConsoleCursorPosition(hBuffer[currentBuffer],coord);
 
     }
+    
 
     
     Board(){
        snake = new Snake(10, UI_HEIGHT + 2);
-;
-        temp_score = 0;
+
+        score = 0;
         speedboost = false;
         cooldown=false;
 
@@ -195,7 +202,7 @@ class Board{
         delete snake;
     }
     int getscore(){
-        return temp_score;
+        return score;
     }
     void spawnFood(){
         while(true){
@@ -245,49 +252,83 @@ class Board{
     }
     void displaycurr_score(){
         gotoxy(con_w/2,0);
-        cout<<"score" <<temp_score;
-    }
-    pair<int,string> highest_score(int temp_score){
-        int highest = 0;
-        string name, oldName;
-
-    // 1️⃣ Read old highest score and name
-        ifstream fin("score.txt");
-        if (fin >> highest >> oldName) {
-        // read successful
-        }
-        fin.close();
-
-        // 2️⃣ If new score is higher
-        if (highest==0 || temp_score > highest) {
-            
-            cin >> name;
-
-            ofstream fout("score.txt");
-            fout << temp_score << " " << name;
-            fout.close();
-        }
-        else{
-            name=oldName;
-        }
-        return {highest,name};
+        cout<<"score" <<score;
     }
     void draw(){
-        system("cls");
+        int back = 1 - currentBuffer;   // 🔁 back buffer index
 
-    // 🔵 DRAW TOP UI BOX
-        drawUI();
+    // clear BACK buffer
+        DWORD written;
+        COORD topLeft = {0, 0};
+        FillConsoleOutputCharacter(
+            hBuffer[back],
+            ' ',
+            con_w * con_h,
+            topLeft,
+            &written
+        );
 
-    // 🟢 DRAW SNAKE (PLAY AREA ONLY)
+    // draw UI on BACK buffer
+        COORD coord;
+
+    // top border
+        for(int x = 0; x < con_w; x++){
+            coord = { (SHORT)x, 0 };
+            SetConsoleCursorPosition(hBuffer[back], coord);
+            cout << "-";
+        }
+
+        coord = {1,1};
+        SetConsoleCursorPosition(hBuffer[back], coord);
+        cout << "Score: " << score;
+
+    // boost bar
+        coord = {(SHORT)(con_w - BAR_WIDTH - 12), 1};
+        SetConsoleCursorPosition(hBuffer[back], coord);
+        cout << "BOOST: [";
+
+        double percent = 1.0;
+        if(speedboost){
+            percent = 1.0 - double(clock() - boostStartTime) / CLOCKS_PER_SEC / boost_time;
+        } 
+        else if(cooldown){
+            percent = double(clock() - cooldownStartTime) / CLOCKS_PER_SEC / cooldown_time;
+        }
+        percent = max(0.0, min(1.0, percent));
+
+        int filled = int(percent * BAR_WIDTH);
+        for(int i = 0; i < BAR_WIDTH; i++){
+            cout << (i < filled ? char(219) : ' ');
+            cout << "]";
+        }
+
+    // bottom UI border
+        for(int x = 0; x < con_w; x++){
+            coord = { (SHORT)x, UI_HEIGHT - 1 };
+            SetConsoleCursorPosition(hBuffer[back], coord);
+            cout << "-";
+        }
+
+    // draw snake
         for(int i = 0; i < snake->getLength(); i++){
-            gotoxy(snake->body[i].xcoord, snake->body[i].ycoord);
+            coord = {
+                (SHORT)snake->body[i].xcoord,
+                (SHORT)snake->body[i].ycoord
+            };
+            SetConsoleCursorPosition(hBuffer[back], coord);
             cout << SNAKE_BODY;
         }
 
-    // 🔴 DRAW FOOD
-        gotoxy(food.xcoord, food.ycoord);
+    // draw food
+        coord = {(SHORT)food.xcoord, (SHORT)food.ycoord};
+        SetConsoleCursorPosition(hBuffer[back], coord);
         cout << FOOD;
+
+    // 🔥 SHOW BACK BUFFER
+        SetConsoleActiveScreenBuffer(hBuffer[back]);
+        currentBuffer = back;   // swap
     }
+
 
     bool update(){
          bool isAlive = snake->move(food);
@@ -298,7 +339,7 @@ class Board{
 
         if(food.xcoord == snake->body[0].xcoord && food.ycoord == snake->body[0].ycoord)
         {
-            temp_score++;
+            score++;
             spawnFood();
         }
        return true;
@@ -334,47 +375,29 @@ class Board{
         }
     }
     void showGameOver(){
-        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-        string highPlayer;
-        pair<int,string> high=highest_score(temp_score);
-        string name=high.second;
-        int hs=high.first;
+        HANDLE hConsole = hBuffer[currentBuffer];
 
-    // Clear screen
-        system("cls");
-
+   
     // Set bold red color
         SetConsoleTextAttribute(
             hConsole,
             FOREGROUND_RED | FOREGROUND_INTENSITY
         );
-        string h_score;
 
         string msg = "GAME OVER";
-        string scoreMsg = "FINAL SCORE : " + to_string(temp_score);
-        if(temp_score==hs){
-
-            h_score="highes score is : " + to_string(hs) + "it's you  ("+name + " )";
-
-        }
-        else  h_score="highes score is : " + to_string(hs)+" by "+"( "+name + " )";
-        string highStr = h_score;
+        string scoreMsg = "FINAL SCORE : " + to_string(score);
 
         int x1 = (con_w - msg.length()) / 2;
         int y1 = con_h / 2;
 
         int x2 = (con_w - scoreMsg.length()) / 2;
         int y2 = y1 + 2;
-        int x3 =(con_w-highStr.length())/2;
-        int y3 = y2+2;
 
         gotoxy(x1, y1);
         cout << msg;
 
         gotoxy(x2, y2);
-        cout << scoreMsg<<"   "<<endl;
-        gotoxy(x3,y3);
-        cout<< h_score<<  " "<<endl;
+        cout << scoreMsg;
 
     // Reset color back to normal
         SetConsoleTextAttribute(
@@ -388,20 +411,39 @@ int main(){
     showConsoleCursor(false);
     srand(time(0));
     initscreen();
-    Board *board=new Board();
-    board ->spawnFood();
+    hBuffer[0] = CreateConsoleScreenBuffer(
+        GENERIC_WRITE,
+        0,
+        NULL,
+        CONSOLE_TEXTMODE_BUFFER,
+        NULL
+    );
+
+    hBuffer[1] = CreateConsoleScreenBuffer(
+        GENERIC_WRITE,
+        0,
+        NULL,
+        CONSOLE_TEXTMODE_BUFFER,
+        NULL
+    );
+
+    SetConsoleActiveScreenBuffer(hBuffer[0]);
+
+   
+    Board *board = new Board();
+    board->spawnFood();
+
     while(true){
         board->getInput();
         if(!board->update()){
-            board->showGameOver();   // 👈 HERE
+            board->showGameOver();
             break;
         }
         board->draw();
         Sleep(board->getCurrentSpeed());
     }
-    delete board;   // ✅ free memory
-    return 0;
-    exit;
 
-    
+    delete board;
+    return 0;
 }
+
