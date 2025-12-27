@@ -2,6 +2,8 @@
 #include<conio.h>
 #include<windows.h>
 #include <ctime>
+//#include <SFML/Audio.hpp>
+
 #pragma comment(lib, "winmm.lib")
 void showConsoleCursor(bool showFlag) {
     HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -14,13 +16,12 @@ using namespace std;
 const int UI_HEIGHT = 3;
 void play_bgm(){
     PlaySound(
-        TEXT("C:\\Users\\bhatt\OneDrive\Desktop\c++ project\c-projects\snake_game"),        // play this file
-        NULL,               // it is not inside program
+        TEXT("417559_6882709-hq.wav"),        // play this file
+        nullptr,               // it is not inside program
         SND_FILENAME |         // it's a file
         SND_ASYNC |            // play in background
         SND_LOOP               // keep repeating
     );
-    
 }
 #define MAX_LENGTH 1000
 //DIRECTION
@@ -42,22 +43,24 @@ void play_eat(){
         nullptr,
         SND_FILENAME | SND_ASYNC
     );
-    Sleep(150);
+    //Sleep(800);
     play_bgm();
-
 }
 void play_bonus(){
     PlaySound(TEXT("mixkit-game-bonus-reached-2065.wav"),nullptr,SND_FILENAME | SND_ASYNC);
+    //Sleep(1000);
     play_bgm();
 }
 void play_crash(){
+    //PlaySound(NULL, 0, 0);
     PlaySound(
         TEXT("mixkit-player-losing-or-failing-2042.wav"),
         nullptr,
         SND_FILENAME | SND_ASYNC
-
+        
     );
-    play_bgm();
+    
+    
 }
 struct point{
     int xcoord;
@@ -101,7 +104,6 @@ class Snake{
     }
     bool move(point food){
         point prevTail = body[length - 1];
-
         for(int i = length - 1; i > 0; i--){
         body[i] = body[i - 1];
         }
@@ -113,13 +115,13 @@ class Snake{
         }
          // 👉 WALL COLLISION (HERE)
         if(body[0].ycoord < UI_HEIGHT || body[0].ycoord >= con_h){
-            play_crash();
+            
             return false;
         } 
         // self collision
         for(int i = 1; i < length; i++){
             if(body[0].xcoord == body[i].xcoord && body[0].ycoord == body[i].ycoord){
-                play_crash();
+                
                 return false;
             }
         }
@@ -387,8 +389,12 @@ int main(){
     while(true){
         board->getInput();
         if(!board->update()){
+            play_crash();
+            //Sleep(2000);
             board->showGameOver();   // 👈 HERE
+            
             break;
+
         }
         board->draw();
         Sleep(board->getCurrentSpeed());
